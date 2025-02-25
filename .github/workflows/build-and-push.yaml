@@ -43,7 +43,7 @@ jobs:
       - name: Package Helm Chart
         run: |
           helm package helm-chart
-          mv my-node-app-0.1.0.tgz helm-chart.tgz
+          mv my-node-app-0.1.1.tgz helm-chart.tgz
 
       - name: Push Helm Chart to GitHub Container Registry
         run: |
