@@ -86,7 +86,7 @@ jobs:
 
       - name: Update Helm values with new image tag
         run: |
-          yq -i -y '.image.tag = "${{ env.VERSION }}"' helm/values.yaml
+          yq -i -y '.image.tag = "${{ env.VERSION }}"' helm-chart/values.yaml
           cat helm/values.yaml  # Debugging
 
       - name: Create dist directory
@@ -95,7 +95,7 @@ jobs:
       - name: Package Helm Chart
         id: package
         run: |
-          CHART_PATH=$(helm package helm/ --version "${{ env.VERSION }}" --app-version "${{ env.VERSION }}" -d dist/helm)
+          CHART_PATH=$(helm package helm-chart/ --version "${{ env.VERSION }}" --app-version "${{ env.VERSION }}" -d dist/helm)
           echo "CHART_PATH=${CHART_PATH}" >> $GITHUB_ENV
 
       - name: Push Helm chart
