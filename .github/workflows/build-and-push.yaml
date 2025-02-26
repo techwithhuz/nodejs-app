@@ -28,12 +28,15 @@ jobs:
         with:
           fetch-depth: 0  # Fetch full history including tags
 
+
       - name: Extract version
         run: |
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            VERSION="${{ github.event.pull_request.head.sha }}"
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             VERSION="${GITHUB_REF#refs/tags/v}"
           else
-            VERSION="1.0.0"  # Default version if not a tag
+            VERSION="latest"
           fi
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
@@ -50,8 +53,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=${{ env.VERSION }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -64,16 +66,17 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
   package-helm:
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')  # Only run on tagged releases
+    permissions: write-all
 
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -84,10 +87,21 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
           sudo apt-get update && sudo apt-get install -y yq
 
+      - name: Extract version
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            VERSION="${{ github.event.pull_request.head.sha }}"
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          else
+            VERSION="latest"
+          fi
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
       - name: Update Helm values with new image tag
         run: |
-          yq -i '.image.tag = "${{ env.VERSION }}"' helm/values.yaml
-          cat helm/values.yaml  # Debugging
+          yq -i -y '.image.tag = "${{ env.VERSION }}"' helm-chart/values.yaml
+          cat helm-chart/values.yaml  # Debugging
 
       - name: Create dist directory
         run: mkdir -p dist/helm
@@ -95,9 +109,25 @@ jobs:
       - name: Package Helm Chart
         id: package
         run: |
-          CHART_PATH=$(helm package helm/ --version "${{ env.VERSION }}" --app-version "${{ env.VERSION }}" -d dist/helm)
+          export VERSION=$(echo ${{ github.ref_name }} | sed 's/^v//')
+          VERSION="${{ env.VERSION }}"
+          CHART_PATH=$(helm package helm-chart/ --version "$VERSION" --app-version "$VERSION" -d dist/helm | awk '{print $NF}')
+          ls -lrt dist/helm/
           echo "CHART_PATH=${CHART_PATH}" >> $GITHUB_ENV
+          
 
-      - name: Push Helm chart
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+         registry: ghcr.io
+         username: ${{ github.actor }}
+         password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push Helm Chart
         run: |
-          helm push "${{ env.CHART_PATH }}" oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/charts
+          helm push "${{ env.CHART_PATH }}" oci://${{ env.REGISTRY }}/${{ github.repository }}/charts
+
+      #- name: Push Helm Chart to GitHub Container Registry
+       # run: |
+       #   echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+       #   helm push "${{ env.CHART_PATH }}"  oci://ghcr.io/${{ github.repository }}
