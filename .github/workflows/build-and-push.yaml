@@ -96,6 +96,7 @@ jobs:
         id: package
         run: |
           CHART_PATH=$(helm package helm-chart/ --version "${{ env.VERSION }}" --app-version "${{ env.VERSION }}" -d dist/helm)
+          ls -lrt dist/helm/
           echo "CHART_PATH=${CHART_PATH}" >> $GITHUB_ENV
 
       - name: Push Helm chart
