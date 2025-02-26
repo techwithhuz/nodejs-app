@@ -28,10 +28,6 @@ jobs:
         with:
           fetch-depth: 0  # Fetch full history including tags
 
-      - name: tag is
-        run: |
-           export VERSION=$(echo ${{ github.ref_name }} | sed 's/^v//')
-           echo "tag=${{ steps.meta.outputs.tags }}"
 
       - name: Extract version
         run: |
@@ -91,6 +87,17 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
           sudo apt-get update && sudo apt-get install -y yq
 
+      - name: Extract version
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            VERSION="${{ github.event.pull_request.head.sha }}"
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          else
+            VERSION="latest"
+          fi
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
       - name: Update Helm values with new image tag
         run: |
           yq -i -y '.image.tag = "${{ env.VERSION }}"' helm-chart/values.yaml
@@ -106,7 +113,7 @@ jobs:
           VERSION="${{ env.VERSION }}"
           CHART_PATH=$(helm package helm-chart/ --version "$VERSION" --app-version "$VERSION" -d dist/helm | awk '{print $NF}')
           ls -lrt dist/helm/
-          echo "CHART_PATH=${CHART_PATH}" >> $
+          echo "CHART_PATH=${CHART_PATH}" >> $GITHUB_ENV
           
 
       - name: Log in to GitHub Container Registry (GHCR)
