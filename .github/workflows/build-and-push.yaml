@@ -107,11 +107,11 @@ jobs:
          username: ${{ github.actor }}
          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Push Helm Chart
-        run: |
-          helm push "${{ env.CHART_PATH }}" oci://${{ env.REGISTRY }}/${{ github.repository }}
-
-      #- name: Push Helm Chart to GitHub Container Registry
+      #- name: Push Helm Chart
       #  run: |
-      #    echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
-      #    helm push "${{ env.CHART_PATH }}"  oci://ghcr.io/${{ github.repository }}
+      #    helm push "${{ env.CHART_PATH }}" oci://${{ env.REGISTRY }}/${{ github.repository }}
+
+      - name: Push Helm Chart to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+          helm push "${{ env.CHART_PATH }}"  oci://ghcr.io/${{ github.repository }}
