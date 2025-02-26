@@ -101,5 +101,4 @@ jobs:
           echo "CHART_PATH=${CHART_PATH}" >> $GITHUB_ENV
       - name: Push Helm Chart
         run: |
-          helm push "dist/helm/${{ env.CHART_PATH }}" oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/charts
-
+          helm push "${{ env.CHART_PATH }}" oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/charts
