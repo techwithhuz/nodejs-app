@@ -1,13 +1,27 @@
 replicaCount: 2
 
 image:
-  repository: ghcr.io/techwithhuz/nodejs-app/my-node-app
+  repository: ghcr.io/techwithhuz/nodejs-app
   tag: ""
   pullPolicy: IfNotPresent
 
-service:
-  type: ClusterIP
-  port: 3000
-
 ingress:
   enabled: false
+
+
+
+nameOverride: ""
+fullnameOverride: ""
+app:
+  name: nodejs-app
+  port: 8080
+service:
+  type: ClusterIP
+  port: 8080
+gateway:
+  hostname: "nodejs.example.com"
+  parentGateway: "eg"
+  weight: 1
+  path: /
+
+filters: {}

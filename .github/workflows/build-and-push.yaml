@@ -24,13 +24,31 @@ jobs:
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Extract Commit SHA
-        run: echo "COMMIT_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
+      #- name: Extract Commit SHA
+      #  run: echo "COMMIT_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
 
-      - name: Build Docker Image
-        run: |
-          docker build -t ghcr.io/${{ github.repository }}/my-node-app:${{ env.COMMIT_SHA }} .
-          docker push ghcr.io/${{ github.repository }}/my-node-app:${{ env.COMMIT_SHA }}
+      #- name: Build Docker Image
+      #  run: |
+      #    docker build -t ghcr.io/${{ github.repository }}/my-node-app:${{ env.COMMIT_SHA }} .
+      #    docker push ghcr.io/${{ github.repository }}/my-node-app:${{ env.COMMIT_SHA }}
+
+      - name: Generate image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=${{ github.event.pull_request.head.sha }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          context: .
+          file: ./Dockerfile
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   package-helm:
     runs-on: ubuntu-latest
