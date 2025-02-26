@@ -99,6 +99,14 @@ jobs:
           CHART_PATH=$(helm package helm-chart/ --version "$VERSION" --app-version "$VERSION" -d dist/helm | awk '{print $NF}')
           ls -lrt dist/helm/
           echo "CHART_PATH=${CHART_PATH}" >> $GITHUB_ENV
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+         registry: ghcr.io
+         username: ${{ github.actor }}
+         password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Push Helm Chart
         run: |
-          helm push "${{ env.CHART_PATH }}" oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/
+          helm push "${{ env.CHART_PATH }}" oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/charts
