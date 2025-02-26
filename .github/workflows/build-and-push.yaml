@@ -28,6 +28,11 @@ jobs:
         with:
           fetch-depth: 0  # Fetch full history including tags
 
+      - name: tag is
+        run: |
+           export VERSION=$(echo ${{ github.ref_name }} | sed 's/^v//')
+           echo "tag=${{ steps.meta.outputs.tags }}}"
+
       - name: Extract version
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
