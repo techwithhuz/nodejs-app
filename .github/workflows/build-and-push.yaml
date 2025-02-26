@@ -47,7 +47,8 @@ jobs:
 
       - name: Update Helm values with new image tag
         run: |
-          yq e -i '.image.tag = "${{ env.COMMIT_SHA }}"' helm-chart/values.yaml
+          export COMMIT_SHA=$(git rev-parse --short HEAD)
+          yq -i '.image.tag = strenv(COMMIT_SHA)' helm-chart/values.yaml
           cat helm-chart/values.yaml  # Debugging to verify the change
 
       - name: Create dist directory
