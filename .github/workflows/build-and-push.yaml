@@ -86,7 +86,7 @@ jobs:
 
       - name: Update Helm values with new image tag
         run: |
-          yq -i '.image.tag = "${{ env.VERSION }}"' helm/values.yaml
+          yq -i -y '.image.tag = "${{ env.VERSION }}"' helm/values.yaml
           cat helm/values.yaml  # Debugging
 
       - name: Create dist directory
