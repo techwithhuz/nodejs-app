@@ -99,39 +99,26 @@ jobs:
       - name: Create dist directory
         run: mkdir -p dist/helm
 
-      #- name: Package Helm Chart
-       # id: package
-       # run: |
-       #   export VERSION=$(echo ${{ github.ref_name }} | sed 's/^v//')
-       #   VERSION="${{ env.VERSION }}"
-       #   CHART_PATH=$(helm package helm-chart/ --version "$VERSION" --app-version "$VERSION" -d dist/helm | awk '{print $NF}')
-        #  ls -lrt dist/helm/
-        #  echo "CHART_PATH=${CHART_PATH}" >> $
-          
       - name: Package Helm Chart
+        id: package
         run: |
-          helm package helm-chart
-          mv my-node-app-0.1.1.tgz helm-chart.tgz
-        
-      - name: print token
+          export VERSION=$(echo ${{ github.ref_name }} | sed 's/^v//')
+          VERSION="${{ env.VERSION }}"
+          CHART_PATH=$(helm package helm-chart/ --version "$VERSION" --app-version "$VERSION" -d dist/helm | awk '{print $NF}')
+          ls -lrt dist/helm/
+          echo "CHART_PATH=${CHART_PATH}" >> $
+          
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+         registry: ghcr.io
+         username: ${{ github.actor }}
+         password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push Helm Chart
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" 
-
-      - name: Push Helm Chart to GitHub Container Registry
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
-          helm push helm-chart.tgz oci://ghcr.io/${{ github.repository }}
-
-      #- name: Log in to GitHub Container Registry (GHCR)
-      #  uses: docker/login-action@v3
-      #  with:
-      #   registry: ghcr.io
-      #   username: ${{ github.actor }}
-      #   password: ${{ secrets.GITHUB_TOKEN }}
-
-      #- name: Push Helm Chart
-      #  run: |
-      #    helm push "${{ env.CHART_PATH }}" oci://${{ env.REGISTRY }}/${{ github.repository }}
+          helm push "${{ env.CHART_PATH }}" oci://${{ env.REGISTRY }}/${{ github.repository }}
 
       #- name: Push Helm Chart to GitHub Container Registry
        # run: |
