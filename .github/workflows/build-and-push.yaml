@@ -77,7 +77,7 @@ jobs:
         id: package
         run: |
           VERSION=$(echo ${{ github.ref_name }} | sed 's/^v//')
-          CHART_PATH=$(helm package helm/ --version $VERSION --app-version $VERSION -d ${REPOSITORY_ROOT}/dist/helm | cut -d: -f2 | tr -d ' ')
+          CHART_PATH=$(helm package helm-chart/ --version $VERSION --app-version $VERSION -d ${REPOSITORY_ROOT}/dist/helm | cut -d: -f2 | tr -d ' ')
           echo "CHART_PATH=${CHART_PATH}" >> $GITHUB_ENV
 
 
