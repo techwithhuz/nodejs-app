@@ -60,11 +60,19 @@ jobs:
       - name: Create dist directory
         run: mkdir -p dist/helm
 
+      #- name: Package Helm Chart
+      #  id: package
+      #  run: |
+      #    helm package helm-chart --version ${{ env.COMMIT_SHA }} --app-version ${{ env.COMMIT_SHA }} -d dist/helm
+      #    echo "CHART_PATH=dist/helm/my-node-app-${{ env.COMMIT_SHA }}.tgz" >> $GITHUB_ENV
+
       - name: Package Helm Chart
         id: package
         run: |
-          helm package helm-chart --version ${{ env.COMMIT_SHA }} --app-version ${{ env.COMMIT_SHA }} -d dist/helm
-          echo "CHART_PATH=dist/helm/my-node-app-${{ env.COMMIT_SHA }}.tgz" >> $GITHUB_ENV
+          export COMMIT_SHA=$(git rev-parse --short HEAD)
+          helm package helm-chart --version "${COMMIT_SHA}" --app-version "${COMMIT_SHA}" -d dist/helm
+          echo "CHART_PATH=dist/helm/my-node-app-${COMMIT_SHA}.tgz" >> $GITHUB_ENV
+
 
       - name: Push Helm Chart
         run: |
