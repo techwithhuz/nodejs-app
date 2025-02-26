@@ -31,7 +31,7 @@ jobs:
       - name: tag is
         run: |
            export VERSION=$(echo ${{ github.ref_name }} | sed 's/^v//')
-           echo "tag=${{ steps.meta.outputs.tags }}}"
+           echo "tag=${{ steps.meta.outputs.tags }}"
 
       - name: Extract version
         run: |
@@ -79,29 +79,6 @@ jobs:
     needs: build-and-push
 
     steps:
-      - name: Extract version
-        run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            VERSION="${{ github.event.pull_request.head.sha }}"
-          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            VERSION="${GITHUB_REF#refs/tags/v}"
-          else
-            VERSION="latest"
-          fi
-          echo "VERSION=${VERSION}" >> $GITHUB_ENV
-
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-
-      - name: tag is
-        run: |
-           echo "tag=${{ steps.meta.outputs.tags }}}"
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -121,14 +98,24 @@ jobs:
       - name: Create dist directory
         run: mkdir -p dist/helm
 
+      #- name: Package Helm Chart
+       # id: package
+       # run: |
+       #   export VERSION=$(echo ${{ github.ref_name }} | sed 's/^v//')
+       #   VERSION="${{ env.VERSION }}"
+       #   CHART_PATH=$(helm package helm-chart/ --version "$VERSION" --app-version "$VERSION" -d dist/helm | awk '{print $NF}')
+        #  ls -lrt dist/helm/
+        #  echo "CHART_PATH=${CHART_PATH}" >> $
+          
       - name: Package Helm Chart
-        id: package
         run: |
-          export VERSION=$(echo ${{ github.ref_name }} | sed 's/^v//')
-          VERSION="${{ env.VERSION }}"
-          CHART_PATH=$(helm package helm-chart/ --version "$VERSION" --app-version "$VERSION" -d dist/helm | awk '{print $NF}')
-          ls -lrt dist/helm/
-          echo "CHART_PATH=${CHART_PATH}" >> $GITHUB_ENV
+          helm package helm-chart
+          mv my-node-app-1.0.2.tgz helm-chart.tgz
+        
+      - name: Push Helm Chart to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+          helm push helm-chart.tgz oci://ghcr.io/${{ github.repository }}
 
       #- name: Log in to GitHub Container Registry (GHCR)
       #  uses: docker/login-action@v3
@@ -141,7 +128,7 @@ jobs:
       #  run: |
       #    helm push "${{ env.CHART_PATH }}" oci://${{ env.REGISTRY }}/${{ github.repository }}
 
-      - name: Push Helm Chart to GitHub Container Registry
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
-          helm push "${{ env.CHART_PATH }}"  oci://ghcr.io/${{ github.repository }}
+      #- name: Push Helm Chart to GitHub Container Registry
+       # run: |
+       #   echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+       #   helm push "${{ env.CHART_PATH }}"  oci://ghcr.io/${{ github.repository }}
