@@ -45,11 +45,17 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
           sudo apt-get update && sudo apt-get install -y yq
 
+      #- name: Update Helm values with new image tag
+      #  run: |
+      #    export COMMIT_SHA=$(git rev-parse --short HEAD)
+      #    yq -i -y '.image.tag = strenv(COMMIT_SHA)' helm-chart/values.yaml
+      #    cat helm-chart/values.yaml  # Debugging to verify the change
+
       - name: Update Helm values with new image tag
         run: |
-          export COMMIT_SHA=$(git rev-parse --short HEAD)
-          yq -i -y '.image.tag = strenv(COMMIT_SHA)' helm-chart/values.yaml
-          cat helm-chart/values.yaml  # Debugging to verify the change
+          export VERSION=$(echo ${{ github.ref_name }} | sed 's/^v//')
+          yq e -i '.image.tag = strenv(VERSION)' helm/values.yaml
+          cat helm/values.yaml
 
       - name: Create dist directory
         run: mkdir -p dist/helm
