@@ -95,10 +95,11 @@ jobs:
       - name: Package Helm Chart
         id: package
         run: |
-          CHART_PATH=$(helm package helm-chart/ --version "${{ env.VERSION }}" --app-version "${{ env.VERSION }}" -d dist/helm)
+          VERSION="${{ env.VERSION }}"
+          CHART_PATH=$(helm package helm/ --version "$VERSION" --app-version "$VERSION" -d dist/helm | awk '{print $NF}')
           ls -lrt dist/helm/
           echo "CHART_PATH=${CHART_PATH}" >> $GITHUB_ENV
-
-      - name: Push Helm chart
+      - name: Push Helm Chart
         run: |
-          helm push "${{ env.CHART_PATH }}" oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/charts
+          helm push "dist/helm/${{ env.CHART_PATH }}" oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/charts
+
