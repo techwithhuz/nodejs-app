@@ -112,6 +112,10 @@ jobs:
           helm package helm-chart
           mv my-node-app-0.1.1.tgz helm-chart.tgz
         
+      - name: print token
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" 
+          
       - name: Push Helm Chart to GitHub Container Registry
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
