@@ -24,10 +24,13 @@ jobs:
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
+      - name: Extract Commit SHA
+        run: echo "COMMIT_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
+
       - name: Build Docker Image
         run: |
-          docker build -t ghcr.io/${{ github.repository }}/my-node-app:latest .
-          docker push ghcr.io/${{ github.repository }}/my-node-app:latest
+          docker build -t ghcr.io/${{ github.repository }}/my-node-app:${{ env.COMMIT_SHA }} .
+          docker push ghcr.io/${{ github.repository }}/my-node-app:${{ env.COMMIT_SHA }}
 
   package-helm:
     runs-on: ubuntu-latest
@@ -37,15 +40,50 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Helm
-        run: curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-
-      - name: Package Helm Chart
+      - name: Install Helm and yq
         run: |
-          helm package helm-chart
-          mv my-node-app-0.1.1.tgz helm-chart.tgz
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          sudo apt-get update && sudo apt-get install -y yq
 
-      - name: Push Helm Chart to GitHub Container Registry
+      #- name: Update Helm values with new image tag
+      #  run: |
+      #    export COMMIT_SHA=$(git rev-parse --short HEAD)
+      #    yq -i -y '.image.tag = strenv(COMMIT_SHA)' helm-chart/values.yaml
+      #    cat helm-chart/values.yaml  # Debugging to verify the change
+
+      - name: Update Helm values with new image tag
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
-          helm push helm-chart.tgz oci://ghcr.io/${{ github.repository }}
+          export COMMIT_SHA=$(git rev-parse --short HEAD)
+          yq -i -y ".image.tag = \"${COMMIT_SHA}\"" helm-chart/values.yaml
+          cat helm-chart/values.yaml  # Debugging to verify the change
+
+      - name: Create dist directory
+        run: mkdir -p dist/helm
+
+      #- name: Package Helm Chart
+      #  id: package
+      #  run: |
+      #    helm package helm-chart --version ${{ env.COMMIT_SHA }} --app-version ${{ env.COMMIT_SHA }} -d dist/helm
+      #    echo "CHART_PATH=dist/helm/my-node-app-${{ env.COMMIT_SHA }}.tgz" >> $GITHUB_ENV
+
+      #- name: Package Helm Chart
+      #  id: package
+      #  run: |
+      #    export COMMIT_SHA=$(git rev-parse --short HEAD)
+      #    helm package helm-chart --version "${COMMIT_SHA}" --app-version "${COMMIT_SHA}" -d dist/helm
+      #    echo "CHART_PATH=dist/helm/my-node-app-${COMMIT_SHA}.tgz" >> $GITHUB_ENV
+
+      - name: Package Helm chart
+        id: package
+        run: |
+          VERSION=$(echo ${{ github.ref_name }} | sed 's/^v//')
+          echo "VERSION=$VERSION"
+          echo "git_ref=${{ github.ref_name }}"
+         # CHART_PATH=$(helm package helm-chart/ --version $VERSION --app-version $VERSION -d ${REPOSITORY_ROOT}/dist/helm | cut -d: -f2 | tr -d ' ')
+         # echo "CHART_PATH=${CHART_PATH}" >> $GITHUB_ENV
+
+
+      #- name: Push Helm Chart
+      #  run: |
+      #    echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+      #    helm push ${{ env.CHART_PATH }} oci://ghcr.io/${{ github.repository }}
