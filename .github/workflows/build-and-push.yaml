@@ -125,7 +125,7 @@ jobs:
 
       - name: Push Helm Chart
         run: |
-          helm push "${{ env.CHART_PATH }}" oci://${{ env.REGISTRY }}/${{ github.repository }}
+          helm push "${{ env.CHART_PATH }}" oci://${{ env.REGISTRY }}/${{ github.repository }}/charts
 
       #- name: Push Helm Chart to GitHub Container Registry
        # run: |
