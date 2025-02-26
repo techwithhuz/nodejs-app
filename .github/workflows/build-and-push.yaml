@@ -84,7 +84,20 @@ jobs:
             VERSION="latest"
           fi
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
-          
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: tag is
+        run: |
+           echo "tag=${{ steps.meta.outputs.tags }}}"
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -106,6 +119,7 @@ jobs:
       - name: Package Helm Chart
         id: package
         run: |
+          export VERSION=$(echo ${{ github.ref_name }} | sed 's/^v//')
           VERSION="${{ env.VERSION }}"
           CHART_PATH=$(helm package helm-chart/ --version "$VERSION" --app-version "$VERSION" -d dist/helm | awk '{print $NF}')
           ls -lrt dist/helm/
