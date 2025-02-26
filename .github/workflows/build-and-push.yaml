@@ -77,11 +77,13 @@ jobs:
         id: package
         run: |
           VERSION=$(echo ${{ github.ref_name }} | sed 's/^v//')
-          CHART_PATH=$(helm package helm-chart/ --version $VERSION --app-version $VERSION -d ${REPOSITORY_ROOT}/dist/helm | cut -d: -f2 | tr -d ' ')
-          echo "CHART_PATH=${CHART_PATH}" >> $GITHUB_ENV
+          echo "VERSION=$VERSION"
+          echo "git_ref=${{ github.ref_name }}"
+         # CHART_PATH=$(helm package helm-chart/ --version $VERSION --app-version $VERSION -d ${REPOSITORY_ROOT}/dist/helm | cut -d: -f2 | tr -d ' ')
+         # echo "CHART_PATH=${CHART_PATH}" >> $GITHUB_ENV
 
 
-      - name: Push Helm Chart
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
-          helm push ${{ env.CHART_PATH }} oci://ghcr.io/${{ github.repository }}
+      #- name: Push Helm Chart
+      #  run: |
+      #    echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+      #    helm push ${{ env.CHART_PATH }} oci://ghcr.io/${{ github.repository }}
