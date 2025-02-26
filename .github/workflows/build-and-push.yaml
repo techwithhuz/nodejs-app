@@ -24,10 +24,13 @@ jobs:
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
+      - name: Extract Commit SHA
+        run: echo "COMMIT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
       - name: Build Docker Image
         run: |
-          docker build -t ghcr.io/${{ github.repository }}/my-node-app:latest .
-          docker push ghcr.io/${{ github.repository }}/my-node-app:latest
+          docker build -t ghcr.io/${{ github.repository }}/my-node-app:${{ env.COMMIT_SHA }} .
+          docker push ghcr.io/${{ github.repository }}/my-node-app:${{ env.COMMIT_SHA }}
 
   package-helm:
     runs-on: ubuntu-latest
@@ -37,15 +40,26 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Helm
-        run: curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      - name: Install Helm and yq
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          sudo apt-get update && sudo apt-get install -y yq
+
+      - name: Update Helm values with new image tag
+        run: |
+          yq e -i '.image.tag = "${{ env.COMMIT_SHA }}"' helm-chart/values.yaml
+          cat helm-chart/values.yaml  # Debugging to verify the change
+
+      - name: Create dist directory
+        run: mkdir -p dist/helm
 
       - name: Package Helm Chart
+        id: package
         run: |
-          helm package helm-chart
-          mv my-node-app-0.1.1.tgz helm-chart.tgz
+          helm package helm-chart --version ${{ env.COMMIT_SHA }} --app-version ${{ env.COMMIT_SHA }} -d dist/helm
+          echo "CHART_PATH=dist/helm/my-node-app-${{ env.COMMIT_SHA }}.tgz" >> $GITHUB_ENV
 
-      - name: Push Helm Chart to GitHub Container Registry
+      - name: Push Helm Chart
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
-          helm push helm-chart.tgz oci://ghcr.io/${{ github.repository }}
+          helm push ${{ env.CHART_PATH }} oci://ghcr.io/${{ github.repository }}
