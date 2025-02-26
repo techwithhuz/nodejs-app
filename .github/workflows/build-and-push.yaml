@@ -66,12 +66,19 @@ jobs:
       #    helm package helm-chart --version ${{ env.COMMIT_SHA }} --app-version ${{ env.COMMIT_SHA }} -d dist/helm
       #    echo "CHART_PATH=dist/helm/my-node-app-${{ env.COMMIT_SHA }}.tgz" >> $GITHUB_ENV
 
-      - name: Package Helm Chart
+      #- name: Package Helm Chart
+      #  id: package
+      #  run: |
+      #    export COMMIT_SHA=$(git rev-parse --short HEAD)
+      #    helm package helm-chart --version "${COMMIT_SHA}" --app-version "${COMMIT_SHA}" -d dist/helm
+      #    echo "CHART_PATH=dist/helm/my-node-app-${COMMIT_SHA}.tgz" >> $GITHUB_ENV
+
+      - name: Package Helm chart
         id: package
         run: |
-          export COMMIT_SHA=$(git rev-parse --short HEAD)
-          helm package helm-chart --version "${COMMIT_SHA}" --app-version "${COMMIT_SHA}" -d dist/helm
-          echo "CHART_PATH=dist/helm/my-node-app-${COMMIT_SHA}.tgz" >> $GITHUB_ENV
+          VERSION=$(echo ${{ github.ref_name }} | sed 's/^v//')
+          CHART_PATH=$(helm package helm/ --version $VERSION --app-version $VERSION -d ${REPOSITORY_ROOT}/dist/helm | cut -d: -f2 | tr -d ' ')
+          echo "CHART_PATH=${CHART_PATH}" >> $GITHUB_ENV
 
 
       - name: Push Helm Chart
